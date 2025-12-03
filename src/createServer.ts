@@ -58,6 +58,14 @@ export function generateInputSchema(moduleName: string, methodName: string): z.Z
       .describe("ID based lookup");
   }
 
+  if (moduleName === "transactions" && methodName === "getTransactionDetails") {
+    return z
+      .object({
+        transactionId: z.string().describe("The transaction ID to retrieve details for"),
+      })
+      .describe("Transaction detail lookup");
+  }
+
   if (methodName.includes("Transactions") || methodName === "getTransactions") {
     return z
       .object({
@@ -102,12 +110,21 @@ export function generateInputSchema(moduleName: string, methodName: string): z.Z
       .describe("Date range options");
   }
 
-  if (methodName.includes("create") || methodName.includes("update")) {
+  if (methodName.includes("update")) {
+    return z
+      .object({
+        id: z.string().describe("Identifier for the item to update"),
+        data: z.record(z.any()).describe("Data for the operation"),
+      })
+      .describe("Payload wrapper for update calls");
+  }
+
+  if (methodName.includes("create")) {
     return z
       .object({
         data: z.record(z.any()).describe("Data for the operation"),
       })
-      .describe("Payload wrapper for create/update calls");
+      .describe("Payload wrapper for create calls");
   }
 
   if (moduleName === "accounts" && methodName === "getAll") {
@@ -169,6 +186,10 @@ export function adaptArguments(toolName: string, args: Record<string, unknown>):
     return [args.id];
   }
 
+  if (toolName === "transactions_getTransactionDetails") {
+    return [args.transactionId];
+  }
+
   if (toolName.includes("History") || toolName.includes("NetWorth")) {
     if (!args.startDate && !args.endDate) {
       return [];
@@ -196,7 +217,11 @@ export function adaptArguments(toolName: string, args: Record<string, unknown>):
     return [transactionArgs];
   }
 
-  if (toolName.includes("create") || toolName.includes("update")) {
+  if (toolName.includes("update")) {
+    return [args.id, args.data];
+  }
+
+  if (toolName.includes("create")) {
     return [args.data];
   }
 
