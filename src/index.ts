@@ -312,26 +312,254 @@ class MonarchMcpServer {
       };
     }
 
-    if (methodName.includes('Transactions') || methodName === 'getTransactions') {
-      return {
-        type: 'object',
-        properties: {
-          limit: { type: 'number', description: 'Maximum number of results (default: 25, max: 100)', default: 25 },
-          offset: { type: 'number', description: 'Pagination offset', default: 0 },
-          startDate: { type: 'string', description: 'Start date (YYYY-MM-DD, defaults to 30 days ago)' },
-          endDate: { type: 'string', description: 'End date (YYYY-MM-DD, defaults to today)' },
-          accountIds: { type: 'array', items: { type: 'string' }, description: 'Filter by account IDs' },
-          categoryIds: { type: 'array', items: { type: 'string' }, description: 'Filter by category IDs' },
-          search: { type: 'string', description: 'Search term for merchant names or descriptions' },
-          absAmountRange: { type: 'array', items: { type: 'number' }, description: 'Filter by amount range [min, max]' },
-          verbosity: {
-            type: 'string',
-            enum: ['brief', 'summary', 'detailed'],
-            description: 'Output detail level: brief (totals only), summary (default), detailed (full info)',
-            default: 'summary'
+    if (moduleName === 'transactions') {
+      switch (methodName) {
+        case 'getTransactionDetails':
+        case 'getTransactionSplits':
+          return {
+            type: 'object',
+            properties: {
+              transactionId: { type: 'string', description: 'Transaction identifier' },
+            },
+            required: ['transactionId'],
+          };
+        case 'updateTransaction':
+          return {
+            type: 'object',
+            properties: {
+              transactionId: { type: 'string', description: 'Transaction identifier' },
+              data: { type: 'object', description: 'Updated transaction fields' },
+            },
+            required: ['transactionId', 'data'],
+          };
+        case 'deleteTransaction':
+          return {
+            type: 'object',
+            properties: {
+              transactionId: { type: 'string', description: 'Transaction identifier' },
+            },
+            required: ['transactionId'],
+          };
+        case 'updateTransactionSplits':
+          return {
+            type: 'object',
+            properties: {
+              transactionId: { type: 'string', description: 'Transaction identifier' },
+              splits: {
+                type: 'array',
+                description: 'Updated transaction splits',
+                items: {
+                  type: 'object',
+                  properties: {
+                    amount: { type: 'number', description: 'Split amount' },
+                    categoryId: { type: 'string', description: 'Optional category for the split' },
+                  },
+                  required: ['amount'],
+                },
+              },
+            },
+            required: ['transactionId', 'splits'],
+          };
+        case 'updateTransactionRule':
+          return {
+            type: 'object',
+            properties: {
+              ruleId: { type: 'string', description: 'Transaction rule identifier' },
+              data: { type: 'object', description: 'Rule update payload' },
+            },
+            required: ['ruleId', 'data'],
+          };
+        case 'deleteTransactionRule':
+          return {
+            type: 'object',
+            properties: {
+              ruleId: { type: 'string', description: 'Transaction rule identifier' },
+            },
+            required: ['ruleId'],
+          };
+        case 'previewTransactionRule':
+          return {
+            type: 'object',
+            properties: {
+              conditions: { type: 'array', items: { type: 'object' }, description: 'Rule conditions' },
+              actions: { type: 'array', items: { type: 'object' }, description: 'Rule actions' },
+            },
+            required: ['conditions', 'actions'],
+          };
+        case 'updateTransactionCategory':
+          return {
+            type: 'object',
+            properties: {
+              categoryId: { type: 'string', description: 'Transaction category identifier' },
+              data: { type: 'object', description: 'Category update payload' },
+            },
+            required: ['categoryId', 'data'],
+          };
+        case 'deleteTransactionCategory':
+        case 'getCategoryDetails':
+          return {
+            type: 'object',
+            properties: {
+              categoryId: { type: 'string', description: 'Transaction category identifier' },
+            },
+            required: ['categoryId'],
+          };
+        case 'setTransactionTags':
+          return {
+            type: 'object',
+            properties: {
+              transactionId: { type: 'string', description: 'Transaction identifier' },
+              tagIds: { type: 'array', items: { type: 'string' }, description: 'Tags to apply' },
+            },
+            required: ['transactionId', 'tagIds'],
+          };
+        case 'getMerchantDetails':
+        case 'getEditMerchant':
+          return {
+            type: 'object',
+            properties: {
+              merchantId: { type: 'string', description: 'Merchant identifier' },
+            },
+            required: ['merchantId'],
+          };
+        case 'getMerchants':
+          return {
+            type: 'object',
+            properties: {
+              search: { type: 'string', description: 'Search term' },
+              limit: { type: 'number', description: 'Max merchants to return', default: 25 },
+            },
+          };
+        case 'getRecurringTransactions':
+          return {
+            type: 'object',
+            properties: {
+              startDate: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+              endDate: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+            },
+          };
+        case 'getRecurringStreams':
+          return {
+            type: 'object',
+            properties: {
+              includeLiabilities: { type: 'boolean', description: 'Include liability streams' },
+              includePending: { type: 'boolean', description: 'Include pending items' },
+              filters: { type: 'object', description: 'Additional filters' },
+            },
+          };
+        case 'getAggregatedRecurringItems':
+          return {
+            type: 'object',
+            properties: {
+              startDate: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+              endDate: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+              groupBy: { type: 'string', description: 'Grouping field' },
+              filters: { type: 'object', description: 'Additional filters' },
+            },
+            required: ['startDate', 'endDate'],
+          };
+        case 'getAllRecurringTransactionItems':
+          return {
+            type: 'object',
+            properties: {
+              filters: { type: 'object', description: 'Filter object' },
+              includeLiabilities: { type: 'boolean', description: 'Include liabilities' },
+            },
+          };
+        case 'reviewRecurringStream':
+          return {
+            type: 'object',
+            properties: {
+              streamId: { type: 'string', description: 'Recurring stream identifier' },
+              reviewStatus: { type: 'string', description: 'Review decision' },
+            },
+            required: ['streamId', 'reviewStatus'],
+          };
+        case 'markStreamAsNotRecurring':
+          return {
+            type: 'object',
+            properties: {
+              streamId: { type: 'string', description: 'Recurring stream identifier' },
+            },
+            required: ['streamId'],
+          };
+        case 'bulkHideTransactions':
+        case 'bulkUnhideTransactions':
+          return {
+            type: 'object',
+            properties: {
+              transactionIds: { type: 'array', items: { type: 'string' }, description: 'Transaction IDs to update' },
+              filters: { type: 'object', description: 'Optional filter context' },
+            },
+            required: ['transactionIds'],
+          };
+        case 'bulkUpdateTransactions':
+          return {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'object',
+                description: 'Bulk update payload',
+                properties: {
+                  transactionIds: { type: 'array', items: { type: 'string' }, description: 'Target transaction IDs' },
+                  updates: { type: 'object', description: 'Update fields' },
+                  excludedTransactionIds: { type: 'array', items: { type: 'string' }, description: 'Excluded transaction IDs' },
+                  allSelected: { type: 'boolean', description: 'Apply to all filtered transactions' },
+                  filters: { type: 'object', description: 'Filter context for bulk update' },
+                },
+                required: ['transactionIds', 'updates'],
+              },
+            },
+            required: ['data'],
+          };
+        case 'getHiddenTransactions':
+          return {
+            type: 'object',
+            properties: {
+              limit: { type: 'number', description: 'Maximum hidden transactions to return', default: 50 },
+              offset: { type: 'number', description: 'Pagination offset', default: 0 },
+              orderBy: { type: 'string', description: 'Ordering for hidden transactions' },
+            },
+          };
+        default:
+          break;
+      }
+
+      if (methodName.includes('TransactionsSummary') || methodName.includes('TransactionsSummaryCard')) {
+        return {
+          type: 'object',
+          properties: {
+            limit: { type: 'number', description: 'Maximum number of summary rows (default: 25, max: 100)', default: 25 },
+            offset: { type: 'number', description: 'Pagination offset', default: 0 },
+            startDate: { type: 'string', description: 'Start date (YYYY-MM-DD, defaults to 30 days ago)' },
+            endDate: { type: 'string', description: 'End date (YYYY-MM-DD, defaults to today)' },
+            accountIds: { type: 'array', items: { type: 'string' }, description: 'Filter by account IDs' },
+            categoryIds: { type: 'array', items: { type: 'string' }, description: 'Filter by category IDs' },
           },
-        },
-      };
+        };
+      }
+
+      if (methodName.includes('Transactions') || methodName === 'getTransactions') {
+        return {
+          type: 'object',
+          properties: {
+            limit: { type: 'number', description: 'Maximum number of results (default: 25, max: 100)', default: 25 },
+            offset: { type: 'number', description: 'Pagination offset', default: 0 },
+            startDate: { type: 'string', description: 'Start date (YYYY-MM-DD, defaults to 30 days ago)' },
+            endDate: { type: 'string', description: 'End date (YYYY-MM-DD, defaults to today)' },
+            accountIds: { type: 'array', items: { type: 'string' }, description: 'Filter by account IDs' },
+            categoryIds: { type: 'array', items: { type: 'string' }, description: 'Filter by category IDs' },
+            search: { type: 'string', description: 'Search term for merchant names or descriptions' },
+            absAmountRange: { type: 'array', items: { type: 'number' }, description: 'Filter by amount range [min, max]' },
+            verbosity: {
+              type: 'string',
+              enum: ['brief', 'summary', 'detailed'],
+              description: 'Output detail level: brief (totals only), summary (default), detailed (full info)',
+              default: 'summary'
+            },
+          },
+        };
+      }
     }
 
     if (methodName.includes('History') || methodName.includes('OverTime')) {
@@ -936,13 +1164,9 @@ Updated: ${account.displayLastUpdatedAt ? new Date(account.displayLastUpdatedAt)
     const noParamMethods = [
       'accounts_getAll',
       'accounts_getBalances',
-      'accounts_getTypeOptions',
-      'transactions_getTransactionsSummary',
-      'transactions_getTransactionsSummaryCard',
       'budgets_getBudgets',
       'categories_getCategories',
       'cashflow_getCashflowSummary',
-      'recurring_getRecurringStreams',
       'institutions_getInstitutions',
       'insights_getInsights',
       'get_me'
@@ -957,6 +1181,52 @@ Updated: ${account.displayLastUpdatedAt ? new Date(account.displayLastUpdatedAt)
       return [args.id];
     }
 
+    if (toolName === 'transactions_getTransactionDetails' || toolName === 'transactions_getTransactionSplits') {
+      return [args.transactionId];
+    }
+
+    if (toolName === 'transactions_updateTransaction') {
+      return [args.transactionId, args.data];
+    }
+
+    if (toolName === 'transactions_deleteTransaction') {
+      return [args.transactionId];
+    }
+
+    if (toolName === 'transactions_updateTransactionSplits') {
+      return [args.transactionId, args.splits];
+    }
+
+    if (toolName === 'transactions_updateTransactionRule') {
+      return [args.ruleId, args.data];
+    }
+
+    if (toolName === 'transactions_deleteTransactionRule') {
+      return [args.ruleId];
+    }
+
+    if (toolName === 'transactions_previewTransactionRule') {
+      return [args.conditions, args.actions];
+    }
+
+    if (
+      toolName === 'transactions_updateTransactionCategory' ||
+      toolName === 'transactions_deleteTransactionCategory' ||
+      toolName === 'transactions_getCategoryDetails'
+    ) {
+      return toolName === 'transactions_updateTransactionCategory'
+        ? [args.categoryId, args.data]
+        : [args.categoryId];
+    }
+
+    if (toolName === 'transactions_setTransactionTags') {
+      return [args.transactionId, args.tagIds];
+    }
+
+    if (toolName.includes('Merchant') && args.merchantId) {
+      return [args.merchantId];
+    }
+
     // Methods that take date range parameters
     if (toolName.includes('History') || toolName.includes('NetWorth')) {
       const params = [];
@@ -965,8 +1235,37 @@ Updated: ${account.displayLastUpdatedAt ? new Date(account.displayLastUpdatedAt)
       return params.length > 0 ? [{ startDate: args.startDate, endDate: args.endDate }] : [];
     }
 
+    if (toolName.includes('TransactionsSummary')) {
+      const summaryArgs: any = { ...args };
+
+      if (summaryArgs.limit && summaryArgs.limit > 100) {
+        summaryArgs.limit = 100;
+      }
+
+      if (!summaryArgs.startDate && !summaryArgs.endDate) {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+        summaryArgs.startDate = startDate.toISOString().split('T')[0];
+        summaryArgs.endDate = endDate.toISOString().split('T')[0];
+      }
+
+      return [summaryArgs];
+    }
+
     // Transaction methods with filtering options
-    if (toolName.includes('Transactions') || toolName.includes('transactions_get')) {
+    if (
+      (toolName.includes('Transactions') || toolName.includes('transactions_get')) &&
+      ![
+        'transactions_getTransactionRules',
+        'transactions_getMerchants',
+        'transactions_getRecurringTransactions',
+        'transactions_getRecurringStreams',
+        'transactions_getAggregatedRecurringItems',
+        'transactions_getAllRecurringTransactionItems',
+        'transactions_getHiddenTransactions',
+      ].includes(toolName)
+    ) {
       // Apply smart defaults to prevent massive data returns
       const transactionArgs = { ...args };
 
@@ -997,6 +1296,42 @@ Updated: ${account.displayLastUpdatedAt ? new Date(account.displayLastUpdatedAt)
       }
 
       return [transactionArgs];
+    }
+
+    if (toolName === 'transactions_getRecurringTransactions') {
+      return args.startDate || args.endDate ? [args] : [];
+    }
+
+    if (toolName === 'transactions_getRecurringStreams') {
+      return Object.keys(args || {}).length ? [args] : [];
+    }
+
+    if (toolName === 'transactions_getAggregatedRecurringItems') {
+      return [args];
+    }
+
+    if (toolName === 'transactions_getAllRecurringTransactionItems') {
+      return Object.keys(args || {}).length ? [args] : [];
+    }
+
+    if (toolName === 'transactions_reviewRecurringStream') {
+      return [args.streamId, args.reviewStatus];
+    }
+
+    if (toolName === 'transactions_markStreamAsNotRecurring') {
+      return [args.streamId];
+    }
+
+    if (toolName === 'transactions_bulkHideTransactions' || toolName === 'transactions_bulkUnhideTransactions') {
+      return [args.transactionIds, args.filters];
+    }
+
+    if (toolName === 'transactions_bulkUpdateTransactions') {
+      return [args.data];
+    }
+
+    if (toolName === 'transactions_getHiddenTransactions') {
+      return Object.keys(args || {}).length ? [args] : [];
     }
 
     // Create/update methods that expect data object

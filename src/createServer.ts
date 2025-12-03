@@ -35,13 +35,9 @@ const sdkModules = [
 const noArgumentMethods = new Set([
   "accounts_getAll",
   "accounts_getBalances",
-  "accounts_getTypeOptions",
-  "transactions_getTransactionsSummary",
-  "transactions_getTransactionsSummaryCard",
   "budgets_getBudgets",
   "categories_getCategories",
   "cashflow_getCashflowSummary",
-  "recurring_getRecurringStreams",
   "institutions_getInstitutions",
   "insights_getInsights",
   "get_me",
@@ -58,12 +54,202 @@ export function generateInputSchema(moduleName: string, methodName: string): z.Z
       .describe("ID based lookup");
   }
 
-  if (moduleName === "transactions" && methodName === "getTransactionDetails") {
+  if (moduleName === "transactions") {
+    switch (methodName) {
+      case "getTransactionDetails":
+      case "getTransactionSplits":
+        return z
+          .object({
+            transactionId: z.string().describe("Transaction identifier"),
+          })
+          .describe("Transaction lookup");
+      case "updateTransaction":
+        return z
+          .object({
+            transactionId: z.string().describe("Transaction identifier"),
+            data: z.record(z.any()).describe("Updated transaction fields"),
+          })
+          .describe("Transaction update payload");
+      case "deleteTransaction":
+        return z
+          .object({
+            transactionId: z.string().describe("Transaction identifier"),
+          })
+          .describe("Transaction deletion payload");
+      case "updateTransactionSplits":
+        return z
+          .object({
+            transactionId: z.string().describe("Transaction identifier"),
+            splits: z
+              .array(
+                z.object({
+                  amount: z.number().describe("Split amount"),
+                  categoryId: z.string().optional().describe("Optional category for the split"),
+                })
+              )
+              .describe("Updated transaction splits"),
+          })
+          .describe("Transaction split update payload");
+      case "updateTransactionRule":
+        return z
+          .object({
+            ruleId: z.string().describe("Transaction rule identifier"),
+            data: z.record(z.any()).describe("Rule update payload"),
+          })
+          .describe("Rule update payload");
+      case "deleteTransactionRule":
+        return z
+          .object({
+            ruleId: z.string().describe("Transaction rule identifier"),
+          })
+          .describe("Rule deletion payload");
+      case "previewTransactionRule":
+        return z
+          .object({
+            conditions: z.array(z.record(z.any())).describe("Rule conditions"),
+            actions: z.array(z.record(z.any())).describe("Rule actions"),
+          })
+          .describe("Rule preview payload");
+      case "updateTransactionCategory":
+        return z
+          .object({
+            categoryId: z.string().describe("Transaction category identifier"),
+            data: z.record(z.any()).describe("Category update payload"),
+          })
+          .describe("Category update payload");
+      case "deleteTransactionCategory":
+      case "getCategoryDetails":
+        return z
+          .object({
+            categoryId: z.string().describe("Transaction category identifier"),
+          })
+          .describe("Category lookup");
+      case "setTransactionTags":
+        return z
+          .object({
+            transactionId: z.string().describe("Transaction identifier"),
+            tagIds: z.array(z.string()).describe("Tags to apply"),
+          })
+          .describe("Transaction tag assignment");
+      case "getMerchantDetails":
+      case "getEditMerchant":
+        return z
+          .object({
+            merchantId: z.string().describe("Merchant identifier"),
+          })
+          .describe("Merchant lookup");
+      case "getMerchants":
+        return z
+          .object({
+            search: z.string().optional().describe("Search term"),
+            limit: z.number().int().positive().optional().default(25).describe("Max merchants to return"),
+          })
+          .describe("Merchant list options");
+      case "getRecurringTransactions":
+        return z
+          .object({
+            startDate: z.string().optional().describe("Start date (YYYY-MM-DD)"),
+            endDate: z.string().optional().describe("End date (YYYY-MM-DD)"),
+          })
+          .describe("Recurring transaction range");
+      case "getRecurringStreams":
+        return z
+          .object({
+            includeLiabilities: z.boolean().optional().describe("Include liability streams"),
+            includePending: z.boolean().optional().describe("Include pending items"),
+            filters: z.any().optional().describe("Additional filters"),
+          })
+          .describe("Recurring stream filters");
+      case "getAggregatedRecurringItems":
+        return z
+          .object({
+            startDate: z.string().describe("Start date (YYYY-MM-DD)"),
+            endDate: z.string().describe("End date (YYYY-MM-DD)"),
+            groupBy: z.string().optional().describe("Grouping field"),
+            filters: z.any().optional().describe("Additional filters"),
+          })
+          .describe("Aggregated recurring query");
+      case "getAllRecurringTransactionItems":
+        return z
+          .object({
+            filters: z.any().optional().describe("Filter object"),
+            includeLiabilities: z.boolean().optional().describe("Include liabilities"),
+          })
+          .describe("Recurring item filters");
+      case "reviewRecurringStream":
+        return z
+          .object({
+            streamId: z.string().describe("Recurring stream identifier"),
+            reviewStatus: z.string().describe("Review decision"),
+          })
+          .describe("Recurring stream review");
+      case "markStreamAsNotRecurring":
+        return z
+          .object({
+            streamId: z.string().describe("Recurring stream identifier"),
+          })
+          .describe("Recurring stream update");
+      case "bulkHideTransactions":
+      case "bulkUnhideTransactions":
+        return z
+          .object({
+            transactionIds: z.array(z.string()).describe("Transaction IDs to update"),
+            filters: z.any().optional().describe("Optional filter context"),
+          })
+          .describe("Bulk visibility update");
+      case "bulkUpdateTransactions":
+        return z
+          .object({
+            data: z
+              .object({
+                transactionIds: z.array(z.string()).describe("Target transaction IDs"),
+                updates: z.record(z.any()).describe("Update fields"),
+                excludedTransactionIds: z.array(z.string()).optional(),
+                allSelected: z.boolean().optional(),
+                filters: z.any().optional(),
+              })
+              .describe("Bulk update payload"),
+          })
+          .describe("Bulk transaction update");
+      case "getHiddenTransactions":
+        return z
+          .object({
+            limit: z.number().int().positive().optional().default(50),
+            offset: z.number().int().nonnegative().optional().default(0),
+            orderBy: z.string().optional().describe("Ordering for hidden transactions"),
+          })
+          .describe("Hidden transaction query");
+      default:
+        break;
+    }
+  }
+
+  if (
+    moduleName === "transactions" &&
+    (methodName.includes("TransactionsSummary") || methodName.includes("TransactionsSummaryCard"))
+  ) {
     return z
       .object({
-        transactionId: z.string().describe("The transaction ID to retrieve details for"),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .default(50)
+          .describe("Maximum number of summary rows (default: 50, capped at 100)"),
+        offset: z
+          .number()
+          .int()
+          .nonnegative()
+          .optional()
+          .default(0)
+          .describe("Pagination offset"),
+        startDate: z.string().optional().describe("Start date (YYYY-MM-DD)"),
+        endDate: z.string().optional().describe("End date (YYYY-MM-DD)"),
+        accountIds: z.array(z.string()).optional().describe("Filter by account IDs"),
+        categoryIds: z.array(z.string()).optional().describe("Filter by category IDs"),
       })
-      .describe("Transaction detail lookup");
+      .describe("Transaction summary options");
   }
 
   if (methodName.includes("Transactions") || methodName === "getTransactions") {
@@ -186,8 +372,50 @@ export function adaptArguments(toolName: string, args: Record<string, unknown>):
     return [args.id];
   }
 
-  if (toolName === "transactions_getTransactionDetails") {
+  if (toolName === "transactions_getTransactionDetails" || toolName === "transactions_getTransactionSplits") {
     return [args.transactionId];
+  }
+
+  if (toolName === "transactions_updateTransaction") {
+    return [args.transactionId, args.data];
+  }
+
+  if (toolName === "transactions_deleteTransaction") {
+    return [args.transactionId];
+  }
+
+  if (toolName === "transactions_updateTransactionSplits") {
+    return [args.transactionId, args.splits];
+  }
+
+  if (toolName === "transactions_updateTransactionRule") {
+    return [args.ruleId, args.data];
+  }
+
+  if (toolName === "transactions_deleteTransactionRule") {
+    return [args.ruleId];
+  }
+
+  if (toolName === "transactions_previewTransactionRule") {
+    return [args.conditions, args.actions];
+  }
+
+  if (
+    toolName === "transactions_updateTransactionCategory" ||
+    toolName === "transactions_deleteTransactionCategory" ||
+    toolName === "transactions_getCategoryDetails"
+  ) {
+    return toolName === "transactions_updateTransactionCategory"
+      ? [args.categoryId, args.data]
+      : [args.categoryId];
+  }
+
+  if (toolName === "transactions_setTransactionTags") {
+    return [args.transactionId, args.tagIds];
+  }
+
+  if (toolName.includes("Merchant") && args.merchantId) {
+    return [args.merchantId];
   }
 
   if (toolName.includes("History") || toolName.includes("NetWorth")) {
@@ -197,7 +425,38 @@ export function adaptArguments(toolName: string, args: Record<string, unknown>):
     return [args];
   }
 
-  if (toolName.includes("Transactions")) {
+  if (toolName.includes("TransactionsSummary")) {
+    const summaryArgs: Record<string, unknown> = { ...args };
+    if (
+      typeof summaryArgs.limit === "number" &&
+      (summaryArgs.limit as number) > 100
+    ) {
+      summaryArgs.limit = 100;
+    }
+
+    if (!summaryArgs.startDate && !summaryArgs.endDate) {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      summaryArgs.startDate = startDate.toISOString().split("T")[0];
+      summaryArgs.endDate = endDate.toISOString().split("T")[0];
+    }
+
+    return [summaryArgs];
+  }
+
+  if (
+    toolName.includes("Transactions") &&
+    ![
+      "transactions_getTransactionRules",
+      "transactions_getMerchants",
+      "transactions_getRecurringTransactions",
+      "transactions_getRecurringStreams",
+      "transactions_getAggregatedRecurringItems",
+      "transactions_getAllRecurringTransactionItems",
+      "transactions_getHiddenTransactions",
+    ].includes(toolName)
+  ) {
     const transactionArgs: Record<string, unknown> = { ...args };
     if (
       typeof transactionArgs.limit === "number" &&
@@ -215,6 +474,42 @@ export function adaptArguments(toolName: string, args: Record<string, unknown>):
     }
 
     return [transactionArgs];
+  }
+
+  if (toolName === "transactions_getRecurringTransactions") {
+    return args.startDate || args.endDate ? [args] : [];
+  }
+
+  if (toolName === "transactions_getRecurringStreams") {
+    return Object.keys(args || {}).length ? [args] : [];
+  }
+
+  if (toolName === "transactions_getAggregatedRecurringItems") {
+    return [args];
+  }
+
+  if (toolName === "transactions_getAllRecurringTransactionItems") {
+    return Object.keys(args || {}).length ? [args] : [];
+  }
+
+  if (toolName === "transactions_reviewRecurringStream") {
+    return [args.streamId, args.reviewStatus];
+  }
+
+  if (toolName === "transactions_markStreamAsNotRecurring") {
+    return [args.streamId];
+  }
+
+  if (toolName === "transactions_bulkHideTransactions" || toolName === "transactions_bulkUnhideTransactions") {
+    return [args.transactionIds, args.filters];
+  }
+
+  if (toolName === "transactions_bulkUpdateTransactions") {
+    return [args.data];
+  }
+
+  if (toolName === "transactions_getHiddenTransactions") {
+    return Object.keys(args || {}).length ? [args] : [];
   }
 
   if (toolName.includes("update")) {
