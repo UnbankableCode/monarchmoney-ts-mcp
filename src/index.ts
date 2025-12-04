@@ -15,13 +15,6 @@ config();
 
 // Globally redirect ALL console output to stderr to prevent JSON-RPC protocol issues
 // This must be done before importing MonarchClient
-const originalConsole = {
-  log: console.log,
-  info: console.info,
-  warn: console.warn,
-  debug: console.debug
-};
-
 console.log = (...args: any[]) => console.error(...args);
 console.info = (...args: any[]) => console.error(...args);
 console.warn = (...args: any[]) => console.error(...args);
@@ -496,7 +489,7 @@ class MonarchMcpServer {
       `${cat} $${amt.toFixed(0)}`).join(', ')} | Total: $${totalSpending.toFixed(0)}`;
   }
 
-  private async getBalanceTrends(args: any): Promise<string> {
+  private async getBalanceTrends(): Promise<string> {
     console.error('📈 Getting balance trends...');
 
     const accounts = await this.monarchClient.accounts.getAll();
@@ -512,7 +505,7 @@ class MonarchMcpServer {
     return `📊 Assets: $${assets.toLocaleString()} | Liabilities: $${liabilities.toLocaleString()} | Net Worth: $${totalBalance.toLocaleString()}`;
   }
 
-  private async getBudgetVarianceSummary(args: any): Promise<string> {
+  private async getBudgetVarianceSummary(): Promise<string> {
     console.error('💰 Getting budget variance...');
 
     try {
@@ -540,7 +533,7 @@ class MonarchMcpServer {
     }
   }
 
-  private async getQuickStats(args: any): Promise<string> {
+  private async getQuickStats(): Promise<string> {
     console.error('⚡ Getting quick stats...');
 
     const [accounts, transactions] = await Promise.all([
@@ -845,7 +838,7 @@ Updated: ${account.displayLastUpdatedAt ? new Date(account.displayLastUpdatedAt)
   }
 
   private parseNaturalLanguageQuery(query: string, existingArgs: any): any {
-    const enhancedArgs: any = {};
+    const enhancedArgs: any = { ...existingArgs };
     const lowerQuery = query.toLowerCase();
 
     // Extract number/quantity (e.g., "last 3", "5 recent", "10 largest")
@@ -1022,17 +1015,16 @@ Updated: ${account.displayLastUpdatedAt ? new Date(account.displayLastUpdatedAt)
       return;
     }
 
-    try {
-      const config = ConfigSchema.parse(process.env);
-    } catch (configError) {
+    const parsedConfig = ConfigSchema.safeParse(process.env);
+    if (!parsedConfig.success) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        `❌ Configuration Error: Please configure your MonarchMoney credentials in Claude Desktop extension settings. Missing or invalid: ${configError instanceof Error ? configError.message : String(configError)}`
+        `❌ Configuration Error: Please configure your MonarchMoney credentials in Claude Desktop extension settings. Missing or invalid: ${parsedConfig.error instanceof Error ? parsedConfig.error.message : parsedConfig.error.toString()}`
       );
     }
 
     try {
-      const config = ConfigSchema.parse(process.env);
+      const config = parsedConfig.data;
 
       console.error(`🔐 Attempting authentication for: ${config.MONARCH_EMAIL}`);
 
