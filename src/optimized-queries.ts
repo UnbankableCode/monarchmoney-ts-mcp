@@ -233,7 +233,6 @@ export function calculateOptimalVerbosity(
   const estimates = RESPONSE_SIZE_ESTIMATES;
 
   // Calculate estimated sizes for each verbosity level
-  const ultraLightSize = estimates['ultra-light'][dataType] * itemCount;
   const lightSize = estimates['light'][dataType] * itemCount;
   const standardSize = estimates['standard'][dataType] * itemCount;
 
@@ -252,17 +251,21 @@ export class OptimizedResponseFormatter {
    */
   static formatAccounts(accounts: any[], verbosity: VerbosityLevel): string {
     switch (verbosity) {
-      case 'ultra-light':
+      case 'ultra-light': {
         const total = accounts.reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
         return `💰 ${accounts.length} accounts, Total: $${total.toLocaleString()}`;
+      }
 
-      case 'light':
-        return accounts.map(acc => {
-          const balance = acc.currentBalance || 0;
-          const hiddenFlag = acc.isHidden ? ' (hidden)' : '';
-          return `• ${acc.displayName}: $${balance.toLocaleString()}${hiddenFlag}`;
-        }).join('\n') +
-        `\n\nTotal: $${accounts.reduce((s, a) => s + (a.currentBalance || 0), 0).toLocaleString()}`;
+      case 'light': {
+        return accounts
+          .map(acc => {
+            const balance = acc.currentBalance || 0;
+            const hiddenFlag = acc.isHidden ? ' (hidden)' : '';
+            return `• ${acc.displayName}: $${balance.toLocaleString()}${hiddenFlag}`;
+          })
+          .join('\n') +
+          `\n\nTotal: $${accounts.reduce((s, a) => s + (a.currentBalance || 0), 0).toLocaleString()}`;
+      }
 
       default: // standard
         return accounts.map(acc => {
@@ -289,19 +292,24 @@ export class OptimizedResponseFormatter {
     const header = originalQuery ? `🧠 **Smart Query**: "${originalQuery}"\n\n` : '';
 
     switch (verbosity) {
-      case 'ultra-light':
+      case 'ultra-light': {
         const total = transactions.reduce((sum, txn) => sum + Math.abs(txn.amount), 0);
         return `${header}💳 ${transactions.length} transactions, Volume: $${total.toLocaleString()}`;
+      }
 
-      case 'light':
-        return header + transactions.map(txn => {
-          const date = new Date(txn.date).toLocaleDateString();
-          const amount = Math.abs(txn.amount).toLocaleString();
-          const merchant = txn.merchant?.name || 'Unknown merchant';
-          const category = txn.category?.name || 'Uncategorized';
+      case 'light': {
+        return header +
+          transactions
+            .map(txn => {
+              const date = new Date(txn.date).toLocaleDateString();
+              const amount = Math.abs(txn.amount).toLocaleString();
+              const merchant = txn.merchant?.name || 'Unknown merchant';
+              const category = txn.category?.name || 'Uncategorized';
 
-          return `• ${date} - ${merchant}\n  ${txn.amount < 0 ? '-' : ''}$${amount} • ${category}`;
-        }).join('\n');
+              return `• ${date} - ${merchant}\n  ${txn.amount < 0 ? '-' : ''}$${amount} • ${category}`;
+            })
+            .join('\n');
+      }
 
       default: // standard
         return header + `💳 **Transaction Summary** (${transactions.length} transactions)\n\n` +
@@ -331,7 +339,6 @@ export class OptimizedResponseFormatter {
       .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
 
     const accountCount = accounts.length;
-    const transactionCount = recentTransactions?.length || 0;
 
     // Calculate month-over-month change (simplified)
     const thisMonth = recentTransactions?.filter(t => {
